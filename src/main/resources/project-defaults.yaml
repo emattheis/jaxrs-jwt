@@ -1,0 +1,54 @@
+swarm:
+  deployment:
+    jaxrs-jwt.war:
+      web:
+        login-config:
+          auth-method: BEARER_TOKEN
+        security-constraints:
+          - url-pattern: /rest/protected
+            roles:
+              - admin
+          - url-pattern: /rest/customer
+            roles:
+              - customer
+  elytron:
+    key-stores:
+      jwt-key-store:
+        path: src/main/resources/jwt.keystore
+        type: JKS
+        credential-reference:
+          clear-text: secret
+    token-realms:
+      jwt-realm:
+        principal-claim: sub
+        jwt:
+          issuer:
+            - quickstart-jwt-issuer
+          audience:
+            - jwt-audience
+          key-store: jwt-key-store
+          certificate: alias
+    security-domains:
+      jwt-domain:
+        default-realm: jwt-realm
+        permission-mapper: default-permission-mapper
+        realms:
+          - realm: jwt-realm
+            role-decoder: groups-to-roles
+    http-authentication-factories:
+      jwt-http-authentication:
+        http-server-mechanism-factory: global
+        security-domain: jwt-domain
+        mechanism-configurations:
+          - mechanism-name: BASIC
+          - mechanism-name: BEARER_TOKEN
+            mechanism-realm-configurations:
+            - realm-name: jwt-realm
+  logging:
+    loggers:
+      org.wildfly.security:
+        level: TRACE
+  undertow:
+    application-security-domains:
+      other:
+        http-authentication-factory: jwt-http-authentication
